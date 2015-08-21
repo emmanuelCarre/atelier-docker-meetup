@@ -1,0 +1,299 @@
+= Meetup - Atelier docker
+
+Pour la réalisation de l’atelier, il sera plus simple d’utiliser une arborescence du type : +
+
+[source,bash]
+----
+...
+	atelier-meetup
+		etape2
+		etape3
+		…
+----
+
+Les différentes parties sont censées s'enchainer dans l'ordre. Cependant, il est possible d'en bypasser certaines en fonction de vos connaissances ou de votre profile.
+
+NOTE: Au fil des étapes, nous lancerons des conteneurs avec tomcat. Pour y accéder depuis votre navigateur, il faudra remplacer `<ip>` par l'ip de votre vm pour ceux qui utliser des vm (Windows et Mac). Pour les utilisateurs linux, vous devriez pouvoir utiliser l'ip du conteneur.
+
+== Etape 1 – Lancer son premier conteneur
+
+Télécharger l’image à utiliser pour instancier le conteneur :
+[source,options="nowrap"]
+----
+$ docker pull centos:centos7
+----
+
+Contrôler que l’image est présente en local :
+[source,options="nowrap"]
+----
+$ docker images
+----
+
+Démarrer le conteneur:
+[source,options="nowrap"]
+----
+$ docker run --rm -it --name mycentos centos:centos7 bash
+----
+
+Vous êtes au sein du conteneur centos 7. Pour le vérifer :
+[source,options="nowrap"]
+----
+$ cat /etc/redhat-release
+----
+
+Au sein de cette commande, nous retrouvons de nombreuse option qu’il est important de comprendre :
+
+* `--rm`: le container sera automatiquement supprimer à la fin de l’exécution. Très pratique lors de petit test ou pour certain type de conteneur. Cela évite de devoir nous-même faire le ménage après coup.
+* `-i`: On attache l’entrée standard du conteneur à notre terminal.
+* `-t`: Alloue un pseudo tty afin d’avoir au sein de notre terminal les sorties (sortie standard et d’erreur).
+* `--name`: On nomme le conteneur mycentos. Il sera plus simple de savoir ce que fait ce conteneur s’il est bien nommer. Avant de quitter le container, ouvrez un autre terminal et exécuter : docker ps
+* `centos:centos7`: le nom de l’image à utiliser pour instancier le conteneur.
+* `bash` : Le processus à exécuter.
+Il est à noter que nous aurions pu nous passer de faire « docker pull centos:centos7 » car le daemon docker pull automatique l’image si elle n’est pas présente en local lors d’une commande run.
+
+== Etape 2 – Créer une image tomcat
+
+=== Ecrire le Dockerfile
+
+Le Dockerfile est un fichier plat dans lequel est décrit comment construire l'image. On y trouve principalement:
+
+* L'image de base: `FROM`
+* Des commandes shell à exécuter: `RUN`
+* La commande pour démarrer un conteneur: `CMD`
+* Des variables d'environnement: `ENV`
+
+C'est très bien documenté http://docs.docker.com/reference/builder/[ici].
+
+Créer un fichier nommé Dockerfile avec le contenu:
+
+[source,options="nowrap"]
+----
+FROM centos:centos7
+
+ENV TOMCAT_VERSION 7.0.55
+ENV CATALINA_HOME /opt/tomcat
+
+RUN yum update -y && \
+    yum install -y wget \
+            tar \
+            java-1.7.0-openjdk && \
+    wget -q https://archive.apache.org/dist/tomcat/tomcat-7/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -O /tmp/catalina.tar.gz && \
+    tar xzf /tmp/catalina.tar.gz -C /opt && \
+    ln -s /opt/apache-tomcat-${TOMCAT_VERSION} /opt/tomcat && \
+    rm /tmp/catalina.tar.gz
+
+EXPOSE 8080
+
+CMD $CATALINA_HOME/bin/catalina.sh run
+----
+
+Construire l'image:
+
+[source,options="nowrap"]
+----
+$ docker build -t my-tomcat:1 .
+----
+
+L'option `-t` est importante car elle permet de nommer l'image. Il est bien plus simple de la retrouver lorsqu'on liste les images disponibles en local:
+[source,options="nowrap"]
+----
+$ docker images
+----
+
+== Etape 3 - Exécuter le conteneur tomcat
+
+Dans cette partie, nous allons démarrer le conteneur avons différentes options couramment utilisées et édutier leurs effets.
+
+=== Processus en premier plan
+
+[source,options="nowrap"]
+----
+$ docker run --rm -it --name tomcat my-tomcat
+----
+De cette manière, vous pouvez directement suivre dans la console les logs de votre conteneur. En ouvrant un autre terminal à coté, faire quelques tests:
+[source,options="nowrap"]
+----
+$ docker ps -f name=tomcat
+CONTAINER ID        IMAGE               COMMAND                CREATED             STATUS              PORTS               NAMES
+184fe03c46c8        my-tomcat           "/bin/sh -c '$CATALI   2 minutes ago       Up 2 minutes        8080/tcp            tomcat
+
+$ curl $(docker inspect --format='{{.NetworkSettings.IPAddress}}' tomcat):8080
+----
+La commande `inspect` est utilisée, dans le cas présent, pour réccupérer l'adresse ip du conteneur.
+
+=== Processus en premier plan en surchargant la commande de démarrage du conteneur
+
+[source,options="nowrap"]
+----
+$ docker run --rm -it --name tomcat my-tomcat bash
+$ /opt/tomcat/bin/catalina.sh run
+----
+
+=== Processus en arrière plan (mode daemon)
+
+[source,options="nowrap"]
+----
+$ docker run -d --name tomcat my-tomcat
+----
+
+Pour arrêt le conteneur
+[source,options="nowrap"]
+----
+$ docker stop tomcat
+----
+
+Le conteneur peut être relancé avec la commande
+[source,options="nowrap"]
+----
+$ docker start tomcat
+----
+
+=== Processus en arrière plan en mappant les ports (mode daemon)
+
+[source,options="nowrap"]
+----
+$ docker run -d -p 80:8080 --name tomcat my-tomcat
+----
+
+== Etape 4 - Inpecter le conteneur
+
+Afin d'en savoir plus sur votre conteneur, le point d'entrée sera, le plus fréquemment, `docker ps`
+
+[source,options="nowrap"]
+----
+$ docker ps
+CONTAINER ID        IMAGE                            COMMAND                CREATED             STATUS              PORTS                  NAMES
+de1e7bad9c2a        my-tomcat                        "/bin/sh -c '$CATALI   9 seconds ago       Up 3 seconds        0.0.0.0:80->8080/tcp   tomcat
+----
+
+Cela vous permet d'obtenir quelques informations basiques comme depuis combien de temps le conteneur est up ou down, son statut et comment sont mapper les ports
+
+[source,options="nowrap"]
+----
+$ docker inspect tomcat
+----
+
+Cette commande retourne de nombreuse informations concernant le conteneur comme:
+
+* Le statut détaillé
+* La configuration réseau
+* Les variables d'environnement
+* La commande pour démarre le processus
+
+Il est bien rare que nous puissions nous passer des logs... Voici comment y accéder:
+
+[source,options="nowrap"]
+----
+$ docker logs --help
+
+Fetch the logs of a container
+
+  -f, --follow=false        Follow log output
+  --help=false              Print usage
+  --since=                  Show logs since timestamp
+  -t, --timestamps=false    Show timestamps
+  --tail=all                Number of lines to show from the end of the logs
+
+$ docker logs --tail=30 tomcat
+----
+
+== Etape 5 - Déployer une application au sein du tomcat
+
+Il existe différentes stratégies pour déployer votre web application au sein du tomcat. Chacune présente leurs avantages et inconvénients. Ci-dessous, nous en arborderons 2.
+
+=== L'applicatif est intégrer à l'image
+
+Modifier le Dockerfile pour obtenir ceci:
+
+Créer un fichier nommé Dockerfile avec le contenu:
+
+[source,options="nowrap"]
+----
+FROM centos:centos7
+
+ENV TOMCAT_VERSION 7.0.55
+ENV CATALINA_HOME /opt/tomcat
+
+RUN yum update -y && \
+    yum install -y wget \
+            tar \
+            java-1.7.0-openjdk && \
+    wget -q https://archive.apache.org/dist/tomcat/tomcat-7/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -O /tmp/catalina.tar.gz && \
+    tar xzf /tmp/catalina.tar.gz -C /opt && \
+    ln -s /opt/apache-tomcat-${TOMCAT_VERSION} /opt/tomcat && \
+    rm /tmp/catalina.tar.gz
+
+ADD http://tomcat.apache.org/tomcat-6.0-doc/appdev/sample/sample.war $CATALINA_HOME/webapps/
+
+EXPOSE 8080
+
+CMD $CATALINA_HOME/bin/catalina.sh run
+----
+
+Construire l'image:
+
+[source,options="nowrap"]
+----
+$ docker build -t my-tomcat:2 .
+----
+
+Vous pouvez accéder à votre application via votre navigateur à l'adresse http://<ip>/sample
+
+
+=== L'applicatif est distribué à plusieurs conteneurs via un volume
+
+Créer un fichier nommé Dockerfile avec le contenu:
+
+[source,options="nowrap"]
+----
+FROM centos:centos7
+
+ENV TOMCAT_VERSION 7.0.55
+ENV CATALINA_HOME /opt/tomcat
+
+RUN yum update -y && \
+    yum install -y wget \
+            tar \
+            java-1.7.0-openjdk && \
+    wget -q https://archive.apache.org/dist/tomcat/tomcat-7/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -O /tmp/catalina.tar.gz && \
+    tar xzf /tmp/catalina.tar.gz -C /opt && \
+    ln -s /opt/apache-tomcat-${TOMCAT_VERSION} /opt/tomcat && \
+    rm /tmp/catalina.tar.gz
+
+EXPOSE 8080
+
+CMD $CATALINA_HOME/bin/catalina.sh run
+----
+
+Construire l'image:
+
+[source,options="nowrap"]
+----
+$ docker build -t my-tomcat:3 .
+----
+
+== Etape 6 – Déployer une bdd mysql
+
+
+== Etape 7 - Lier des conteneurs
+
+
+== Etape 8 - Lier des conteneurs avec Docker compose
+
+== Etape 9 - Pour aller plus loin
+
+=== Les tags d'images
+
+On peut définir pour une même image un ensemble de version. Pour se faire on utilise les tags. +
+Vous avez déjà réalisé des tags lorsque vous avez construit les images my-tomcat. La preuve:
+
+[source,options="nowrap"]
+----
+$ docker images my-tomcat
+REPOSITORY          TAG                 IMAGE ID            CREATED             VIRTUAL SIZE
+my-tomcat           2                   0b99e644d905        23 minutes ago      470.7 MB
+my-tomcat           1                   265526e1b8bb        6 days ago          470.7 MB
+my-tomcat           latest              7a4df7729c97        6 days ago          470.7 MB
+----
+
+Quand vous nommer une image via `docker build -t`, la partie après le séparateur `:` sera le nom du tag. Ce tag peut être alpha numérique.
