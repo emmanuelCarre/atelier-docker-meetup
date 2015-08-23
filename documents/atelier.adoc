@@ -133,26 +133,32 @@ $ /opt/tomcat/bin/catalina.sh run
 
 [source,options="nowrap"]
 ----
-$ docker run -d --name tomcat my-tomcat
+$ docker run -d --name tomcat_v1 my-tomcat:1
 ----
 
 Pour arrêt le conteneur
 [source,options="nowrap"]
 ----
-$ docker stop tomcat
+$ docker stop tomcat_v1
 ----
 
 Le conteneur peut être relancé avec la commande
 [source,options="nowrap"]
 ----
-$ docker start tomcat
+$ docker start tomcat_v1
+----
+
+NOTE: Il est a noter qu'on ne peut pas exécuter plusieurs conteneurs avec le même nom. Afin de pouvoir réaliser l'étape suivante, on doit supprimer le conteneur nommé `tomcat_v1`. Pour se faire, exécutez la commande suivante (le conteneur doit être arrêté):
+[source,options="nowrap"]
+----
+$ docker rm tomcat_v1
 ----
 
 === Processus en arrière plan en mappant les ports (mode daemon)
 
 [source,options="nowrap"]
 ----
-$ docker run -d -p 80:8080 --name tomcat my-tomcat
+$ docker run -d -p 80:8080 --name tomcat_v1 my-tomcat:1
 ----
 
 == Etape 4 - Inpecter le conteneur
@@ -199,42 +205,33 @@ $ docker logs --tail=30 tomcat
 
 == Etape 5 - Déployer une application au sein du tomcat
 
-Il existe différentes stratégies pour déployer votre web application au sein du tomcat. Chacune présente leurs avantages et inconvénients. Ci-dessous, nous en arborderons 2.
+Il existe différentes stratégies pour déployer votre application web au sein du tomcat. Chacune présente leurs avantages et inconvénients. Ci-dessous, nous en arborderons 2.
 
 === L'applicatif est intégrer à l'image
-
-Modifier le Dockerfile pour obtenir ceci:
 
 Créer un fichier nommé Dockerfile avec le contenu:
 
 [source,options="nowrap"]
 ----
-FROM centos:centos7
-
-ENV TOMCAT_VERSION 7.0.55
-ENV CATALINA_HOME /opt/tomcat
-
-RUN yum update -y && \
-    yum install -y wget \
-            tar \
-            java-1.7.0-openjdk && \
-    wget -q https://archive.apache.org/dist/tomcat/tomcat-7/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -O /tmp/catalina.tar.gz && \
-    tar xzf /tmp/catalina.tar.gz -C /opt && \
-    ln -s /opt/apache-tomcat-${TOMCAT_VERSION} /opt/tomcat && \
-    rm /tmp/catalina.tar.gz
+FROM my-tomcat:1
 
 ADD http://tomcat.apache.org/tomcat-6.0-doc/appdev/sample/sample.war $CATALINA_HOME/webapps/
-
-EXPOSE 8080
-
-CMD $CATALINA_HOME/bin/catalina.sh run
 ----
+
+Ce Dockerfile est extrement court! Cela est possible via l'instruction `FROM my-tomcat:1` qui permet d'hérité de se qu'on a définit au sein de notre premier Dockerfile.
 
 Construire l'image:
 
 [source,options="nowrap"]
 ----
 $ docker build -t my-tomcat:2 .
+----
+
+Exécuter le conteneur:
+
+[source,options="nowrap"]
+----
+$ docker run -d -p 80:8080 --name tomcat_v2 my-tomcat:2
 ----
 
 Vous pouvez accéder à votre application via votre navigateur à l'adresse http://<ip>/sample
@@ -246,23 +243,9 @@ Créer un fichier nommé Dockerfile avec le contenu:
 
 [source,options="nowrap"]
 ----
-FROM centos:centos7
+FROM my-tomcat:1
 
-ENV TOMCAT_VERSION 7.0.55
-ENV CATALINA_HOME /opt/tomcat
-
-RUN yum update -y && \
-    yum install -y wget \
-            tar \
-            java-1.7.0-openjdk && \
-    wget -q https://archive.apache.org/dist/tomcat/tomcat-7/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -O /tmp/catalina.tar.gz && \
-    tar xzf /tmp/catalina.tar.gz -C /opt && \
-    ln -s /opt/apache-tomcat-${TOMCAT_VERSION} /opt/tomcat && \
-    rm /tmp/catalina.tar.gz
-
-EXPOSE 8080
-
-CMD $CATALINA_HOME/bin/catalina.sh run
+VOLUME $CATALINA_HOME/webapps/
 ----
 
 Construire l'image:
@@ -271,6 +254,19 @@ Construire l'image:
 ----
 $ docker build -t my-tomcat:3 .
 ----
+
+[source,options="nowrap"]
+----
+$ docker run -d -p 80:8080 --name tomcat_v2 my-tomcat:2
+----
+
+Afin de démarré le conteneur, il vous faudra avoir le war à déployer en local. Téléchargez le à l'adresse suivante: http://tomcat.apache.org/tomcat-6.0-doc/appdev/sample/sample.war
+
+[source,options="nowrap"]
+----
+$ docker run -d -p 80:8080 -v "<chemin jusqu'au dossier du war>/sample.war":"/opt/tomcat/webapps/sample.war" --name tomcat_v3 my-tomcat:3
+----
+
 
 == Etape 6 – Déployer une bdd mysql
 
