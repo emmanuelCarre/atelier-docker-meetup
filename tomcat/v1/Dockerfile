@@ -10,7 +10,8 @@ RUN yum update -y && \
     wget -q https://archive.apache.org/dist/tomcat/tomcat-7/v${TOMCAT_VERSION}/bin/apache-tomcat-${TOMCAT_VERSION}.tar.gz -O /tmp/catalina.tar.gz && \
     tar xzf /tmp/catalina.tar.gz -C /opt && \
     ln -s /opt/apache-tomcat-${TOMCAT_VERSION} /opt/tomcat && \
-    rm /tmp/catalina.tar.gz
+    rm /tmp/catalina.tar.gz && \
+    rm -r /opt/tomcat/webapps/*
 
 EXPOSE 8080
 

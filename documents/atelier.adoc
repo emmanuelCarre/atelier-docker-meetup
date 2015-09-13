@@ -1,5 +1,7 @@
 = Meetup - Atelier docker
 
+Au sein de cet atelier, vous allez manipuler progressivement docker pour déployer au sein de conteneurs une webapp et sa base de donnée. Ceci dit, l'application et la base de donnée ne sont qu'un support pour aborder certains concepts, commandes et syntaxe de Docker.
+
 Pour la réalisation de l’atelier, il sera plus simple d’utiliser une arborescence du type : +
 
 [source,bash]
@@ -12,6 +14,8 @@ Pour la réalisation de l’atelier, il sera plus simple d’utiliser une arbore
 ----
 
 Les différentes parties sont censées s'enchainer dans l'ordre. Cependant, il est possible d'en bypasser certaines en fonction de vos connaissances ou de votre profile.
+
+IMPORTANT: L'aide de Docker est très bien réalisée. N'hésitez pas à la consulter avec `docker <commande> --help`!
 
 NOTE: Au fil des étapes, nous lancerons des conteneurs avec tomcat. Pour y accéder depuis votre navigateur, il faudra remplacer `<ip>` par l'ip de votre vm pour ceux qui utliser des vm (Windows et Mac). Pour les utilisateurs linux, vous devriez pouvoir utiliser l'ip du conteneur.
 
@@ -102,7 +106,7 @@ $ docker images
 
 == Etape 3 - Exécuter le conteneur tomcat
 
-Dans cette partie, nous allons démarrer le conteneur avons différentes options couramment utilisées et édutier leurs effets.
+Dans cette partie, nous allons démarrer le conteneur avec différentes options couramment utilisées et édutier leurs effets.
 
 === Processus en premier plan
 
@@ -268,13 +272,105 @@ $ docker run -d -p 80:8080 -v "<chemin jusqu'au dossier du war>/sample.war":"/op
 ----
 
 
-== Etape 6 – Déployer une bdd mysql
+== Etape 6 – Déployer une webapp et utilisant une base de donnée mysql
 
+Cette partie se déroulera en 3 étapes:
 
-== Etape 7 - Lier des conteneurs
+. Instancier un conteneur avec la base mysql.
+. Contruire une webapp nécessitant une base mysql.
+. Instancier un conteneur avec la webapp qui communiquera avec la base.
 
+=== Instancier la base de bonnée
+
+Conteneur: https://hub.docker.com/r/mysql/mysql-server/[mysql/mysql-server:5.7.7] +
+
+Ce conteneur permet d'instancier une base de donnée mysql en lui passant en argument le mot de passe de l'utilisateur root ainsi que le le nom de la base.
+
+[source,options="nowrap"]
+----
+$ docker run -d --name mysql -e MYSQL_ROOT_PASSWORD=root -e MYSQL_DATABASE=taskdb -p 3306:3306 mysql/mysql-server:5.7.7
+----
+
+=== Construire l'application
+
+L'application webapp-sample est assez simple; directement inspirée des guides de spring. Pour la construire, exécutez la commande suivante:
+
+[source,options="nowrap"]
+----
+$ mvn clean package
+----
+
+==== Les API disponibles
+
+* Ajouter une tâche
+[source,options="nowrap"]
+----
+POST - /webapp-sample/tasks/
+{
+	"name": "..."
+}
+----
+* Lister les tâches
+[source,options="nowrap"]
+----
+GET - /webapp-sample/tasks/
+----
+* Afficher une tâche
+[source,options="nowrap"]
+----
+GET - /webapp-sample/tasks/<id>
+----
+* Nombre de tâches
+[source,options="nowrap"]
+----
+GET - /webapp-sample/tasks/count
+----
+
+=== Instancier l'application
+
+Pour cette étape, nous allons utiliser le travail réalisé à l'étape 5. Pour rappel, nous pouvons lancer notre application de cette manière:
+
+[source,options="nowrap"]
+----
+$ docker run -d -p 80:8080 -v "<chemin jusqu'au dossier du war>/webapp-sample.war":"/opt/tomcat/webapps/webapp-sample.war" --name tomcat_v5 my-tomcat:3
+----
+
+Mais cela ne suffit pas pour faire communiquer nos conteneurs entre eux. Vous trouverez la solution en jetant un oeil aux options de `docker run`. Le simple ajout de l'option `--link` devrait solutionner notre problème.
+
+[source,options="nowrap"]
+----
+$ docker run -d -p 80:8080 --link mysql:db -v "<chemin jusqu'au dossier du war>/webapp-sample.war":"/opt/tomcat/webapps/webapp-sample.war" --name tomcat_v5 my-tomcat:3
+----
+
+Le format des paramètres de l'option `--link` est le suivant `<nom ou id du conteneur>:alias`. L'alias en question est celui utilisé au sein de la webapp pour référencer la base de donnée: `jdbc:mysql://db:3306/taskdb`
 
 == Etape 8 - Lier des conteneurs avec Docker compose
+
+Ce cas simple est très fréquent. Sachant que notre application ne peut pas fonctionner sans base de donnée, il serait très pratique de démarrer les 2 conteneurs ensemble: la base de données puis le tomcat. Pour se faire, on peut utiliser https://www.docker.com/docker-compose[docker-compose].
+
+Docker-compose repose sur un fichier plat décrivant les différents conteneurs composant notre application ainsi que les liens entre eux.
+
+Créer un fichier nommer `docker-compose.yml` en utilisant la https://docs.docker.com/compose/yml/[documentation].
+
+[source,options="nowrap"]
+----
+webapp:
+  image: my-tomcat:3
+  ports:
+   - "80:8080"
+  links:
+   - mysql:db
+  volumes:
+   - ./target/webapp-sample.war:/opt/tomcat/webapps/webapp-sample.war
+
+mysql:
+  image: mysql/mysql-server:5.7.7
+  environment:
+   - MYSQL_ROOT_PASSWORD=root
+   - MYSQL_DATABASE=taskdb
+  expose:
+   - 3306
+----
 
 == Etape 9 - Pour aller plus loin
 

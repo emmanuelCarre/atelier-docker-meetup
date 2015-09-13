@@ -1,0 +1,16 @@
+webapp:
+  image: my-tomcat:3
+  ports:
+   - "80:8080"
+  links:
+   - mysql:db
+  volumes:
+   - ./target/webapp-sample.war:/opt/tomcat/webapps/webapp-sample.war
+
+mysql:
+  image: mysql/mysql-server:5.7.7
+  environment:
+   - MYSQL_ROOT_PASSWORD=root
+   - MYSQL_DATABASE=taskdb
+  expose:
+   - 3306
