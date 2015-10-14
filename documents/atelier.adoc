@@ -1,6 +1,6 @@
 = Meetup - Atelier docker
 
-Au sein de cet atelier, vous allez manipuler progressivement docker pour déployer au sein de conteneurs une webapp et sa base de donnée. Ceci dit, l'application et la base de donnée ne sont qu'un support pour aborder certains concepts, commandes et syntaxe de Docker.
+Au sein de cet atelier, vous allez manipuler progressivement docker pour déployer au sein de conteneurs une webapp et sa base de données. Ceci dit, l'application et la base de données ne sont qu'un support pour aborder certains concepts, commandes et syntaxe de Docker.
 
 Pour la réalisation de l’atelier, il sera plus simple d’utiliser une arborescence du type : +
 
@@ -17,7 +17,7 @@ Les différentes parties sont censées s'enchainer dans l'ordre. Cependant, il e
 
 IMPORTANT: L'aide de Docker est très bien réalisée. N'hésitez pas à la consulter avec `docker <commande> --help`!
 
-NOTE: Au fil des étapes, nous lancerons des conteneurs avec tomcat. Pour y accéder depuis votre navigateur, il faudra remplacer `<ip>` par l'ip de votre vm pour ceux qui utliser des vm (Windows et Mac). Pour les utilisateurs linux, vous devriez pouvoir utiliser l'ip du conteneur.
+NOTE: Au fil des étapes, nous lancerons des conteneurs avec tomcat. Pour y accéder depuis votre navigateur, il faudra remplacer `<ip>` par l'ip de votre vm pour ceux qui utiliser des vm (Windows et Mac). Pour les utilisateurs linux, vous devriez pouvoir utiliser l'ip du conteneur.
 
 == Etape 1 – Lancer son premier conteneur
 
@@ -39,7 +39,7 @@ Démarrer le conteneur:
 $ docker run --rm -it --name mycentos centos:centos7 bash
 ----
 
-Vous êtes au sein du conteneur centos 7. Pour le vérifer :
+Vous êtes au sein du conteneur centos 7. Pour le vérifier :
 [source,options="nowrap"]
 ----
 $ cat /etc/redhat-release
@@ -106,7 +106,7 @@ $ docker images
 
 == Etape 3 - Exécuter le conteneur tomcat
 
-Dans cette partie, nous allons démarrer le conteneur avec différentes options couramment utilisées et édutier leurs effets.
+Dans cette partie, nous allons démarrer le conteneur avec différentes options couramment utilisées et étudier leurs effets.
 
 === Processus en premier plan
 
@@ -123,9 +123,9 @@ CONTAINER ID        IMAGE               COMMAND                CREATED          
 
 $ curl $(docker inspect --format='{{.NetworkSettings.IPAddress}}' tomcat):8080
 ----
-La commande `inspect` est utilisée, dans le cas présent, pour réccupérer l'adresse ip du conteneur.
+La commande `inspect` est utilisée, dans le cas présent, pour récupérer l'adresse ip du conteneur.
 
-=== Processus en premier plan en surchargant la commande de démarrage du conteneur
+=== Processus en premier plan en surchargeant la commande de démarrage du conteneur
 
 [source,options="nowrap"]
 ----
@@ -133,7 +133,7 @@ $ docker run --rm -it --name tomcat my-tomcat bash
 $ /opt/tomcat/bin/catalina.sh run
 ----
 
-=== Processus en arrière plan (mode daemon)
+=== Processus en arrière-plan (mode daemon)
 
 [source,options="nowrap"]
 ----
@@ -152,20 +152,20 @@ Le conteneur peut être relancé avec la commande
 $ docker start tomcat_v1
 ----
 
-NOTE: Il est a noter qu'on ne peut pas exécuter plusieurs conteneurs avec le même nom. Afin de pouvoir réaliser l'étape suivante, on doit supprimer le conteneur nommé `tomcat_v1`. Pour se faire, exécutez la commande suivante (le conteneur doit être arrêté):
+NOTE: Il est à noter qu'on ne peut pas exécuter plusieurs conteneurs avec le même nom. Afin de pouvoir réaliser l'étape suivante, on doit supprimer le conteneur nommé `tomcat_v1`. Pour se faire, exécutez la commande suivante (le conteneur doit être arrêté):
 [source,options="nowrap"]
 ----
 $ docker rm tomcat_v1
 ----
 
-=== Processus en arrière plan en mappant les ports (mode daemon)
+=== Processus en arrière-plan en mappant les ports (mode daemon)
 
 [source,options="nowrap"]
 ----
 $ docker run -d -p 80:8080 --name tomcat_v1 my-tomcat:1
 ----
 
-== Etape 4 - Inpecter le conteneur
+== Etape 4 - Inspecter le conteneur
 
 Afin d'en savoir plus sur votre conteneur, le point d'entrée sera, le plus fréquemment, `docker ps`
 
@@ -209,7 +209,7 @@ $ docker logs --tail=30 tomcat
 
 == Etape 5 - Déployer une application au sein du tomcat
 
-Il existe différentes stratégies pour déployer votre application web au sein du tomcat. Chacune présente leurs avantages et inconvénients. Ci-dessous, nous en arborderons 2.
+Il existe différentes stratégies pour déployer votre application web au sein du tomcat. Chacune présente leurs avantages et inconvénients. Ci-dessous, nous en aborderons 2.
 
 === L'applicatif est intégrer à l'image
 
@@ -222,7 +222,7 @@ FROM my-tomcat:1
 ADD http://tomcat.apache.org/tomcat-6.0-doc/appdev/sample/sample.war $CATALINA_HOME/webapps/
 ----
 
-Ce Dockerfile est extrement court! Cela est possible via l'instruction `FROM my-tomcat:1` qui permet d'hérité de se qu'on a définit au sein de notre premier Dockerfile.
+Ce Dockerfile est extrement court! Cela est possible via l'instruction `FROM my-tomcat:1` qui permet d'hérité de ce qu'on a défini au sein de notre premier Dockerfile.
 
 Construire l'image:
 
@@ -264,7 +264,7 @@ $ docker build -t my-tomcat:3 .
 $ docker run -d -p 80:8080 --name tomcat_v2 my-tomcat:2
 ----
 
-Afin de démarré le conteneur, il vous faudra avoir le war à déployer en local. Téléchargez le à l'adresse suivante: http://tomcat.apache.org/tomcat-6.0-doc/appdev/sample/sample.war
+Afin de démarré le conteneur, il vous faudra avoir le war à déployer en local. Téléchargez-le à l'adresse suivante: http://tomcat.apache.org/tomcat-6.0-doc/appdev/sample/sample.war
 
 [source,options="nowrap"]
 ----
@@ -272,19 +272,19 @@ $ docker run -d -p 80:8080 -v "<chemin jusqu'au dossier du war>/sample.war":"/op
 ----
 
 
-== Etape 6 – Déployer une webapp et utilisant une base de donnée mysql
+== Etape 6 – Déployer une webapp et utilisant une base de données mysql
 
 Cette partie se déroulera en 3 étapes:
 
 . Instancier un conteneur avec la base mysql.
-. Contruire une webapp nécessitant une base mysql.
+. Construire une webapp nécessitant une base mysql.
 . Instancier un conteneur avec la webapp qui communiquera avec la base.
 
-=== Instancier la base de bonnée
+=== Instancier la base de données
 
 Conteneur: https://hub.docker.com/r/mysql/mysql-server/[mysql/mysql-server:5.7.7] +
 
-Ce conteneur permet d'instancier une base de donnée mysql en lui passant en argument le mot de passe de l'utilisateur root ainsi que le le nom de la base.
+Ce conteneur permet d'instancier une base de données mysql en lui passant en argument le mot de passe de l'utilisateur root ainsi que le nom de la base.
 
 [source,options="nowrap"]
 ----
@@ -350,7 +350,7 @@ Ce cas simple est très fréquent. Sachant que notre application ne peut pas fon
 
 Docker-compose repose sur un fichier plat décrivant les différents conteneurs composant notre application ainsi que les liens entre eux.
 
-Créer un fichier nommer `docker-compose.yml` en utilisant la https://docs.docker.com/compose/yml/[documentation].
+Créez un fichier nommé `docker-compose.yml` en utilisant la https://docs.docker.com/compose/yml/[documentation].
 
 [source,options="nowrap"]
 ----
