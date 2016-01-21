@@ -8,6 +8,7 @@ help:
 	@echo "    all                           to generate html documentation"
 	@echo "    build                         to generate html documentation"
 	@echo "    clean                         to remove html documentation"
+	@echo "    clean-all                     to remove html documentation and delete data container"
 	@echo "    init -e DOCUMENTS_PATH=<path> to create data container with documentation source. <path> have to be path to source documentation folder"
 
 clean:
@@ -22,4 +23,4 @@ build:
 	docker run --rm -it --volumes-from $(DATA_CONTAINER) --workdir=/workspace --entrypoint=asciidoctor asciidoctor/docker-asciidoctor *.adoc
 
 init:
-	docker create -v "$(DOCUMENTS_PATH)":$(CURDIR) --name $(DATA_CONTAINER) tianon/true /bin/true
+	docker create -v  "$(DOCUMENTS_PATH)":"/workspace" --name $(DATA_CONTAINER) tianon/true /bin/true
