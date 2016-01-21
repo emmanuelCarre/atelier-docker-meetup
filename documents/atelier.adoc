@@ -165,6 +165,8 @@ $ docker rm tomcat_v1
 $ docker run -d -p 80:8080 --name tomcat_v1 my-tomcat:1
 ----
 
+Dans ce cas-ci, grace à l'option `-p` nous relions le port 80 de notre hôte avec le port 8080 du conteneur.
+
 == Etape 4 - Inspecter le conteneur
 
 Afin d'en savoir plus sur votre conteneur, le point d'entrée sera, le plus fréquemment, `docker ps`
